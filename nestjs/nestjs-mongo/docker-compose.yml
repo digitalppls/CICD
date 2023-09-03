@@ -1,0 +1,48 @@
+version: '3'
+services:
+  server:
+    image: app
+    container_name: app
+    build:
+      context: "."
+    restart: unless-stopped
+    env_file: .env
+    depends_on:
+      - mongodb
+    environment:
+      - MONGO_USERNAME=$MONGO_USERNAME
+      - MONGO_PASSWORD=$MONGO_PASSWORD
+      - MONGO_HOSTNAME=db
+      - MONGO_PORT=$MONGO_PORT
+      - MONGO_DB=$MONGO_DB
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./src:/app/src
+      - ./package.json:/app/package.json
+      - ./package-lock.json:/app/package-lock.json
+      - ./tsconfig.json:/app/tsconfig.json
+      - ./.env:/app/.env
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    networks:
+      - app-network
+    command: sh -c "npm ci && npm run start"
+
+  db:
+    image: mongo:6.0.4
+    container_name: mongodb
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=$MONGO_USERNAME
+      - MONGO_INITDB_ROOT_PASSWORD=$MONGO_PASSWORD
+    volumes:
+      - ./dbdata:/data/db
+    networks:
+      - app-network
+    command: mongod --quiet --logpath /dev/null
+
+networks:
+  app-network:
+    driver: bridge
